@@ -1,12 +1,15 @@
 use std::env;
+use std::error::Error;
 use std::io;
 use std::io::Write;
 use std::path::Path;
 use std::process;
+use std::process::Command;
 
 pub struct Args<'a> {
     args: Vec<&'a str>,
     arg_num: usize,
+    arg_iter: usize,
 }
 
 impl<'a> Args<'a> {
@@ -15,16 +18,28 @@ impl<'a> Args<'a> {
 
         let arg_num = args.len();
 
-        return Args { args, arg_num };
+        let arg_iter = 0;
+
+        return Args { args, arg_num, arg_iter };
     }
 
     pub fn deal(self) -> Result<(), &'static str> {
-        match self.args[0] {
+        let mut iter = self.args.iter();
+
+        iter.next();
+
+        match self.args[self.arg_iter] {
             "cd" => { return self.deal_cd(); }
-            "pwd" => { return self.deal_pwd(); }
             "exit" => { return self.deal_exit(); }
-            _ => { return Ok(()); }
+            cmd => {
+                if let Err(err) = Command::new(cmd).args(iter).status() {
+                    eprintln!("{}", err.description());
+                    return Err("Failed to apply command.");
+                }
+            }
         }
+
+        return Ok(());
     }
 
     fn deal_cd(self) -> Result<(), &'static str> {
@@ -51,20 +66,6 @@ impl<'a> Args<'a> {
         return match env::set_current_dir(dir) {
             Ok(_) => Ok(()),
             Err(_) => Err("Got an error when trying to set current dir."),
-        };
-    }
-
-    fn deal_pwd(self) -> Result<(), &'static str> {
-        if self.arg_num > 1 {
-            return Err("Expect no more than 1 arguments.");
-        }
-
-        return match pwd() {
-            Ok(path) => {
-                println!("{}", path);
-                return Ok(());
-            }
-            Err(e) => Err(e)
         };
     }
 
