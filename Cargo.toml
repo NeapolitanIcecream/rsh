@@ -1,0 +1,7 @@
+[package]
+name = "rsh"
+version = "0.1.0"
+authors = ["Neopolitan <neopolitan@mail.ustc.edu.cn>"]
+edition = "2018"
+
+[dependencies]
