@@ -1,8 +1,8 @@
 use std::env;
-use std::path::Path;
-use std::process;
 use std::io;
 use std::io::Write;
+use std::path::Path;
+use std::process;
 
 pub struct Args<'a> {
     args: Vec<&'a str>,
@@ -59,18 +59,13 @@ impl<'a> Args<'a> {
             return Err("Expect no more than 1 arguments.");
         }
 
-        let dir = match env::current_dir() {
-            Ok(path_buf) => path_buf,
-            Err(_) => {
-                return Err("Got an error when trying to get current dir.");
+        return match pwd() {
+            Ok(path) => {
+                println!("{}", path);
+                return Ok(());
             }
+            Err(e) => Err(e)
         };
-
-        let path = dir.as_path();
-
-        println!("{}", path.display());
-
-        return Ok(());
     }
 
     fn deal_exit(self) -> Result<(), &'static str> {
@@ -89,7 +84,25 @@ impl<'a> Args<'a> {
 pub fn prompt() -> Result<(), &'static str> {
     let mut out = io::stdout();
 
-    if let Err(_) = out.write(b"> ") {
+    let home = match env::var("HOME") {
+        Ok(dir) => dir,
+        Err(_) => {
+            return Err("Got an error when trying to read home_dir.");
+        }
+    };
+
+    let home = home.as_str();
+
+    let path = match pwd() {
+        Ok(pwd) => pwd,
+        Err(e) => {
+            return Err(e);
+        }
+    }.replace(home, "~");
+
+    println!("{}", path);
+
+    if let Err(_) = out.write("> ".as_bytes()) {
         return Err("Got an error when trying to write prompt to stdout.");
     };
 
@@ -98,4 +111,17 @@ pub fn prompt() -> Result<(), &'static str> {
     };
 
     return Ok(());
+}
+
+fn pwd() -> Result<String, &'static str> {
+    let dir = match env::current_dir() {
+        Ok(path_buf) => path_buf,
+        Err(_) => {
+            return Err("Got an error when trying to get current dir.");
+        }
+    };
+
+    let path = dir.as_path().display().to_string();
+
+    return Ok(path);
 }
